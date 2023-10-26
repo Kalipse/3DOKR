@@ -3,14 +3,10 @@ services:
     image: redis
     ports:
       - "6379:6379"
-
-  vote:
-    build:
-      context: ./vote
-    ports:
-      - "8080:8080"
-    depends_on:
-      - redis
+    volumes:
+      - redis-volume:/data
+    networks:
+      - network-1
 
   postgres:
     image: postgres
@@ -20,6 +16,20 @@ services:
       POSTGRES_DB: postgres
     ports:
       - "5432:5432"
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    networks:
+      - network-1
+
+  vote:
+    build:
+      context: ./vote
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks:
+      - network-1
 
   worker:
     build:
@@ -27,6 +37,8 @@ services:
     depends_on:
       - postgres
       - redis
+    networks:
+      - network-1
 
   result:
     build:
@@ -35,3 +47,12 @@ services:
       - "8081:8888"
     depends_on:
       - worker
+    networks:
+      - network-1
+
+volumes:
+  redis-volume:
+  postgres-volume:
+
+networks:
+  network-1:
