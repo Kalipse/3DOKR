@@ -21,6 +21,12 @@ services:
     networks:
       - network-1
 
+  user:
+    build:
+      context: .
+    ports:
+      - "8888:8888"
+
   vote:
     build:
       context: ./vote
