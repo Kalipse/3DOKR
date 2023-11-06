@@ -34,11 +34,34 @@ Vagrant.configure("2") do |config|
         sudo bash -c 'echo -e "[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375" > /etc/systemd/system/docker.service.d/options.conf'
         sudo systemctl daemon-reload
         sudo systemctl restart docker.service
+        
       SHELL
+      if node_name == "manager1"  
+        node.vm.provision "shell", inline: <<-SHELL
+          # Cloner le dépôt Git
+          git clone  
+          git clone https://github.com/Kalipse/3DOKR.git /3DOKR
+          cd /3DOKR
+  
+          #build docker image
+          docker build -t vote-service ./vote
+          docker build -t worker-service ./worker
+          docker build -t result-service ./result 
 
-      node.vm.provision "docker" do |d|
-        d.pull_images "alpine:latest"
+          #initialiser le swarm
+          docker swarm init --advertise-addr 192.168.99.100
+          
+          #il faut ensuite que les workers rejoignent le swarm
+
+          #on peut ensuite deployer les services
+          #docker stack deploy --compose-file docker-compose.yml 3DOKR
+           
+
+        SHELL
       end
+     
+
+
     end
   end
 end

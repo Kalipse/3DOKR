@@ -6,7 +6,7 @@ services:
     volumes:
       - redis-volume:/data
     networks:
-      - network-1
+      - network-redis
 
   postgres:
     image: postgres
@@ -19,13 +19,15 @@ services:
     volumes:
       - postgres-volume:/var/lib/postgresql/data
     networks:
-      - network-1
+      - network-postgres
 
   user:
     build:
       context: .
     ports:
       - "8888:8888"
+    networks:
+      - network-user
 
   vote:
     build:
@@ -35,7 +37,7 @@ services:
     depends_on:
       - redis
     networks:
-      - network-1
+      - network-redis
 
   worker:
     build:
@@ -44,7 +46,8 @@ services:
       - postgres
       - redis
     networks:
-      - network-1
+      - network-redis
+      - network-postgres
 
   result:
     build:
@@ -54,11 +57,13 @@ services:
     depends_on:
       - worker
     networks:
-      - network-1
+      - network-postgres
 
 volumes:
   redis-volume:
   postgres-volume:
 
 networks:
-  network-1:
+  network-user:
+  network-redis:
+  network-postgres:
