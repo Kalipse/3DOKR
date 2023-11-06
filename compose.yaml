@@ -1,4 +1,7 @@
+# Docker compose
+
 services:
+  # Service Redis utilisé pour le stockage en cache
   redis:
     image: redis
     ports:
@@ -8,6 +11,7 @@ services:
     networks:
       - network-redis
 
+  # Service PostgreSQL utilisé pour la base de données
   postgres:
     image: postgres
     environment:
@@ -21,6 +25,7 @@ services:
     networks:
       - network-postgres
 
+  # Service utilisateur personnalisé
   user:
     build:
       context: .
@@ -29,6 +34,7 @@ services:
     networks:
       - network-user
 
+  # Service de vote
   vote:
     build:
       context: ./vote
@@ -39,6 +45,7 @@ services:
     networks:
       - network-redis
 
+  # Worker service qui dépend de Redis et PostgreSQL
   worker:
     build:
       context: ./worker
@@ -49,6 +56,7 @@ services:
       - network-redis
       - network-postgres
 
+  # Service de résultat qui dépend du worker
   result:
     build:
       context: ./result
@@ -61,9 +69,14 @@ services:
 
 volumes:
   redis-volume:
+    # Volume pour stocker les données Redis
   postgres-volume:
+    # Volume pour stocker les données PostgreSQL
 
 networks:
   network-user:
+    # Réseau personnalisé pour le service utilisateur
   network-redis:
+    # Réseau personnalisé pour les services Redis et Vote
   network-postgres:
+    # Réseau personnalisé pour les services PostgreSQL, Worker, et Result

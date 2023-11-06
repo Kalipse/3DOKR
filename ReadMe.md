@@ -1,6 +1,6 @@
 # 3DOCKR
 
-## Description
+<span style="color: red;">## Description</span>
 
 Ce mini-projet consiste à moderniser le déploiement d'une application distribuée de vote, en utilisant des conteneurs Docker. L'application permet à un public de voter entre deux options et d'afficher les résultats en temps réel. Actuellement, le projet est géré via des scripts bash, et l'objectif est de transformer ce processus en un environnement de conteneurs Docker pour une meilleure gestion, évolutivité et facilité de déploiement.
 
@@ -132,8 +132,6 @@ CMD ["dotnet", "Worker.dll"]
 
 ## Module user
 
-- [Dockerfile](user\Dockerfile)
-
 ```Dockerfile
 # Dockerfile user
 
@@ -156,7 +154,10 @@ CMD ["tail", "-f", "/dev/null"]
 ## Docker compose
 
 ```yaml
+# Docker compose
+
 services:
+  # Service Redis utilisé pour le stockage en cache
   redis:
     image: redis
     ports:
@@ -166,6 +167,7 @@ services:
     networks:
       - network-redis
 
+  # Service PostgreSQL utilisé pour la base de données
   postgres:
     image: postgres
     environment:
@@ -179,6 +181,7 @@ services:
     networks:
       - network-postgres
 
+  # Service utilisateur personnalisé
   user:
     build:
       context: .
@@ -187,6 +190,7 @@ services:
     networks:
       - network-user
 
+  # Service de vote
   vote:
     build:
       context: ./vote
@@ -197,6 +201,7 @@ services:
     networks:
       - network-redis
 
+  # Service du worker
   worker:
     build:
       context: ./worker
@@ -207,6 +212,7 @@ services:
       - network-redis
       - network-postgres
 
+  # Service de résultat
   result:
     build:
       context: ./result
@@ -219,17 +225,23 @@ services:
 
 volumes:
   redis-volume:
+    # Volume pour stocker les données Redis
   postgres-volume:
+    # Volume pour stocker les données PostgreSQL
 
 networks:
   network-user:
+    # Réseau personnalisé pour le service utilisateur
   network-redis:
+    # Réseau personnalisé pour les services Redis et Vote
   network-postgres:
+    # Réseau personnalisé pour les services PostgreSQL, Worker, et Result
 ```
 
 ## Docker Swarm
 
 **Étape 1 : Création du vagrant**
+
 Tout d'abord, nous avons créé un `Vagrantfile` pour définir la configuration de nos machines virtuelles.
 
 ```ruby
@@ -303,6 +315,7 @@ end
 ```
 
 **Étape 2 : Initialisation de Vagrant**
+
 Pour initialiser les machines virtuelles avec Vagrant nous faisons :
 
 ```bash
@@ -310,6 +323,7 @@ vagrant up
 ```
 
 **Étape 3 : Initialisation du Nœud Manager**
+
 Une fois les machines virtuelles créées, nous accédons à la machine du nœud manager :
 
 ```bash
@@ -340,6 +354,7 @@ docker swarm join --token VOTRE_TOKEN VOTRE_ADRESSE_IP
 ```
 
 **Étape 5 : Création du compose**
+
 Nous créons ensuite le compose :
 
 ```bash
@@ -347,9 +362,12 @@ nano compose.yaml
 ```
 
 ```yaml
+#Docker compose Swarm
+
 version: "3.7"
 
 services:
+  # Service Redis utilisé pour le stockage en cache
   redis:
     image: redis:latest
     ports:
@@ -359,6 +377,7 @@ services:
     networks:
       - network-redis
 
+  # Service PostgreSQL utilisé pour la base de données
   postgres:
     image: postgres:latest
     environment:
@@ -372,6 +391,7 @@ services:
     networks:
       - network-postgres
 
+  # Service utilisateur personnalisé
   user:
     image: user-service:latest
     ports:
@@ -385,6 +405,7 @@ services:
     networks:
       - network-user
 
+  # Service de vote
   vote:
     image: vote-service:latest
     ports:
@@ -398,6 +419,7 @@ services:
     networks:
       - network-redis
 
+  # Service du worker
   worker:
     image: worker-service:latest
     depends_on:
@@ -411,6 +433,7 @@ services:
       - network-redis
       - network-postgres
 
+  # Service de résultat
   result:
     image: result-service:latest
     ports:
@@ -426,15 +449,21 @@ services:
 
 volumes:
   redis-volume:
+    # Volume pour stocker les données Redis
   postgres-volume:
+    # Volume pour stocker les données PostgreSQL
 
 networks:
   network-user:
+    # Réseau personnalisé pour le service utilisateur
   network-redis:
+    # Réseau personnalisé pour les services Redis et Vote
   network-postgres:
+    # Réseau personnalisé pour les services PostgreSQL, Worker et Result
 ```
 
 **Remarque :**
+
 Nous avons aussi modifier les differents noms de services pour y permettre la connexion.
 
 comme par exemple :
@@ -452,6 +481,7 @@ var redisConn = OpenRedisConnection("3DOKR_redis");
 ```
 
 **Étape 6 : Construction des Images**
+
 Nous construisons nos images pour pouvoir les utiliser dans le deploy :
 
 ```bash
@@ -461,6 +491,7 @@ docker build -t result-service ./result
 ```
 
 **Étape 7 : Déploiement des Services**
+
 Nous déployons ensuite les services :
 
 ```bash
