@@ -441,14 +441,14 @@ comme par exemple :
 
 ```javascript
 const pool = new pg.Pool({
-  connectionString: "postgres://postgres:postgres@**3DOKR_postgres**/postgres",
+  connectionString: "postgres://postgres:postgres@3DOKR_postgres/postgres",
 });
 ```
 
 ou
 
 ```cs
-var redisConn = OpenRedisConnection("**3DOKR_redis**");
+var redisConn = OpenRedisConnection("3DOKR_redis");
 ```
 
 **Étape 6 : Construction des Images**
@@ -509,7 +509,7 @@ Si vous souhaitez personnaliser les ports ou les paramètres, assurez-vous de co
 
 ## Contributeurs
 
-Ce projet a été realise par :
+Ce projet a été realisé par :
 
 [Noah](https://github.com/Kaalipse)
 Et
