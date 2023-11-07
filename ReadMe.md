@@ -678,6 +678,8 @@ ou
 var redisConn = OpenRedisConnection("3DOKR_redis");
 ```
 
+Notre déploiement de Swarm est désormais opérationnel, ce qui renforce considérablement l'infrastructure de notre application. Cette mise en place nous confère une robustesse améliorée. Elle nous permet également d'assurer une gestion plus efficace de notre application, offrant une haute disponibilité et une tolérance aux pannes.
+
 ## Contributeurs
 
 Ce projet a été realisé par :
