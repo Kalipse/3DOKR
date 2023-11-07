@@ -5,11 +5,11 @@ Conteneurisation d'une application de vote distribuée avec Docker
 ## Sommaire
 
 1. [Introduction](#introduction)
-2. [Installtion](#installation)
+2. [Installation](#installation)
 3. [Conteneurisation des modules](#conteneurisation-des-modules)
 4. [Création du Docker Compose](#création-du-docker-compose)
 5. [Déploiement sur Docker Swarm](#déploiement-sur-docker-swarm)
-6. [Contributeurs](#contributeur)
+6. [Contributeurs](#contributeurs)
 
 ## Introduction
 
@@ -673,5 +673,5 @@ var redisConn = OpenRedisConnection("3DOKR_redis");
 Ce projet a été realisé par :
 
 [Noah](https://github.com/Kaalipse)
-Et
+et
 [Francois Xavier](https://github.com/francoisxavierdesaintjean)
