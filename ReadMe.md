@@ -22,7 +22,7 @@ L'installation du projet se fait à partir de GitHub.
 1. Vous devez commencer par cloner le projet
 
 ```bash
-git clone https://github.com/Kalipse/3DOKR.git /3DOKR
+git clone https://github.com/Kalipse/3DOKR.git
 ```
 
 2. Accéder au dossier du projet
@@ -93,6 +93,8 @@ EXPOSE 8080
 CMD ["python", "app.py"]
 ```
 
+<br><br><br>
+
 **Module worker (bash) :**
 
 ```bash
@@ -151,6 +153,8 @@ COPY --from=build --chown=user:user /app/bin/release/net7.0 ./
 CMD ["dotnet", "Worker.dll"]
 ```
 
+<br><br><br>
+
 **Module result (bash) :**
 
 ```bash
@@ -201,6 +205,8 @@ EXPOSE 8888
 # Commande à exécuter lorsque le conteneur est lancé
 CMD ["node", "server.js"]
 ```
+
+<br><br><br>
 
 Nous avons également introduit un Dockerfile 'User',qui nous permet de ne pas exécuter les conteneurs en tant qu'utilisateur 'root'. Cette approche renforce la sécurité de notre application en évitant l'exécution de processus sous un privilège élevé
 
@@ -507,7 +513,10 @@ vagrant ssh worker2
 sudo docker swarm join --token INSERER LE TOKEN + ADDRESSE IP
 ```
 
-Nous modifions ensuite le compose present dans le manager pour inclure l'attribut deploy
+Nous modifions ensuite le Docker Compose présent dans le manager pour y inclure l'attribut "deploy" qui contient :
+
+Le nombre de réplicas souhaité, permettant ainsi de bénéficier d'une haute disponibilité et d'une tolérance aux pannes.
+La politique de redémarrage, permettant de définir une condition de démarrage pour nos différents services.
 
 ```bash
 vagrant ssh manager1
@@ -562,6 +571,7 @@ services:
       - redis
       - postgres
     deploy:
+      replicas: 1
       restart_policy:
         condition: on-failure
     healthcheck:
