@@ -1,7 +1,7 @@
 # Dockerfile vote
 
 # Utilisation de l'image Python version 3.11 comme base
-FROM python:3.11
+FROM python:3.11-alpine
 
 # Définition de la variable d'environnement PYTHON_ENV à "production"
 ENV PYTHON_ENV=production

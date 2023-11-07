@@ -5,17 +5,22 @@ version: "3.7"
 services:
   # Service Redis utilisé pour le stockage en cache
   redis:
-    image: redis:latest
+    image: redis:alpine
     ports:
       - "6379:6379"
     volumes:
       - redis-volume:/data
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
 
   # Service PostgreSQL utilisé pour la base de données
   postgres:
-    image: postgres:latest
+    image: postgres:alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -24,6 +29,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-postgres
 
@@ -38,6 +48,11 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-user
 
@@ -52,6 +67,11 @@ services:
       replicas: 3
       restart_policy:
         condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
 
@@ -65,6 +85,11 @@ services:
       replicas: 3
       restart_policy:
         condition: on-failure
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
       - network-postgres
@@ -80,6 +105,11 @@ services:
       replicas: 3
       restart_policy:
         condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:8888 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-postgres
 

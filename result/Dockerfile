@@ -1,7 +1,7 @@
 # Dockerfile result
 
 # Utilisation de l'image Node.js version 18 comme base
-FROM node:18
+FROM node:18-alpine
 
 # Définition de la variable d'environnement NODE_ENV à "production"
 ENV NODE_ENV production

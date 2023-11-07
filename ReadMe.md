@@ -1,45 +1,76 @@
 # 3DOCKR
 
-## Description
+Conteneurisation d'une application de vote distribuée avec Docker
+
+## Sommaire
+
+1. [Introduction](#introduction)
+2. [Installtion](#installation)
+3. [Conteneurisation des modules](#conteneurisation-des-modules)
+4. [Création du Docker Compose](#création-du-docker-compose)
+5. [Déploiement sur Docker Swarm](#déploiement-sur-docker-swarm)
+6. [Contributeurs](#contributeur)
+
+## Introduction
 
 Ce mini-projet consiste à moderniser le déploiement d'une application distribuée de vote, en utilisant des conteneurs Docker. L'application permet à un public de voter entre deux options et d'afficher les résultats en temps réel. Actuellement, le projet est géré via des scripts bash, et l'objectif est de transformer ce processus en un environnement de conteneurs Docker pour une meilleure gestion, évolutivité et facilité de déploiement.
 
-## Composants
+## Installation
 
-Le projet se compose de trois modules principaux :
+L'installation du projet se fait à partir de GitHub.
 
-1. **vote** : Une application web Python permettant aux utilisateurs de voter pour l'une des deux options. Les votes peuvent être modifiés.
+1. Vous devez commencer par cloner le projet
 
-2. **worker** : Un service .NET qui collecte les votes depuis une instance Redis et les stocke dans une base de données PostgreSQL.
+```bash
+git clone https://github.com/Kalipse/3DOKR.git /3DOKR
+```
 
-3. **result** : Une application web Node.js qui affiche en temps réel les résultats des votes.
+2. Accéder au dossier du projet
 
-## Technologies Utilisées
+```bash
+cd /3DOKR
+```
 
-- Python 3.11 + pip
-- Node.js 18 + npm
-- SDK .NET Core version 7
-- PostgreSQL pour le stockage des votes
-- Redis pour la transmission des votes
-- Docker pour la conteneurisation des applications
+3. Et enfin exécuter une commande Docker Compose.
 
-## Processus de Conteneurisation
+```bash
+docker compose up
+```
 
-1. Écriture d'un Dockerfile pour chaque module afin de reproduire le comportement des scripts tout en respectant les meilleures pratiques de conteneurisation.
+## Conteneurisation des modules
 
-2. Suppression des scripts ou adaptation pour les rendre compatibles avec Docker.
+Pour simplifier le déploiement de l'application, nous avons d'abord converti les scripts bash initiaux associés aux principaux modules (worker, result et vote) en Dockerfiles, en veillant à respecter les meilleures pratiques. Cela nous a permis d'améliorer la gestion des conteneurs et d'assurer une plus grande cohérence.
 
-3. Création d'un fichier Docker Compose regroupant les conteneurs et les bases de données du projet. Déclaration des volumes pour la préservation des données entre les redémarrages, gestion des réseaux et des dépendances, ainsi que la prise en compte des cas où les conteneurs ne démarrent pas.
+En ce qui concerne les services Redis et PostgreSQL, nous avons choisi de les intégrer directement dans notre fichier Docker Compose. Cette approche s'est avérée plus simple et plus efficace, car ces services nécessitaient peu de configurations spécifiques et pouvaient être rapidement mis en place dans l'environnement de conteneur.
 
-4. Déploiement de l'application sur un cluster Docker Swarm composé d'un nœud manager et de deux nœuds worker. Un document décrivant le processus de mise en place du cluster et de déploiement de l'application sera fourni.
+Ce qui nous donne :
 
-## Module vote
+**Module vote (bash) :**
+
+```bash
+#!/usr/bin/env bash
+
+# Étape 2 - Vote
+# Version de Python utilisée lors des développements : 3.11
+
+cd ../vote || exit
+
+# Installation des dépendances
+pip install -r requirements.txt
+
+# Lancement du serveur
+python app.py
+```
+
+👇
+
+**Module vote (Dockerfile) :**
 
 ```Dockerfile
 # Dockerfile vote
 
 # Utilisation de l'image Python version 3.11 comme base
-FROM python:3.11
+FROM python:3.11-alpine
 
 # Définition de la variable d'environnement PYTHON_ENV à "production"
 ENV PYTHON_ENV=production
@@ -62,39 +93,29 @@ EXPOSE 8080
 CMD ["python", "app.py"]
 ```
 
-## Module result
+**Module worker (bash) :**
 
-```Dockerfile
-# Dockerfile result
+```bash
+#!/usr/bin/env bash
 
-# Utilisation de l'image Node.js version 18 comme base
-FROM node:18
+# Étape 4 - Worker
+# Version de .NET Core utilisée lors des développements : 7.0
 
-# Définition de la variable d'environnement NODE_ENV à "production"
-ENV NODE_ENV production
+cd ../worker || exit
 
-# Définition du répertoire de travail dans le conteneur
-WORKDIR /app
+# Installation des dépendances
+dotnet restore
 
-# Copie de tout le contenu du répertoire local actuel dans le répertoire de travail du conteneur
-COPY --chown=user:user . /app
+# Production d'un exécutable
+dotnet publish -c release --self-contained false --no-restore
 
-# Copie du répertoire local "views" dans le répertoire de travail du conteneur
-COPY --chown=user:user ./views /app
-
-# Configuration du cache npm en utilisant un point de montage
-# pour améliorer la vitesse des installations ultérieures
-RUN --mount=type=cache,target=/usr/src/app/.npm \
-  npm set cache /usr/src/app/.npm && \
-  npm install ci --only=production
-
-# Exposition du port 8888 pour les connexions entrantes
-EXPOSE 8888
-# Commande à exécuter lorsque le conteneur est lancé
-CMD ["node", "server.js"]
+# Lancement du serveur
+dotnet bin/release/net7.0/Worker.dll
 ```
 
-## Module worker
+👇
+
+**Module worker (Dockerfile) :**
 
 ```Dockerfile
 # Dockerfile worker
@@ -130,7 +151,58 @@ COPY --from=build --chown=user:user /app/bin/release/net7.0 ./
 CMD ["dotnet", "Worker.dll"]
 ```
 
-## Module user
+**Module result (bash) :**
+
+```bash
+#!/usr/bin/env bash
+
+# Étape 5 - Result
+# Version de Node.js utilisée lors des développements : 18
+
+cd ../result || exit
+
+# Installation des dépendances
+npm install
+
+# Lancement du serveur
+npm start
+```
+
+👇
+
+**Module result (Dockerfile) :**
+
+```Dockerfile
+# Dockerfile result
+
+# Utilisation de l'image Node.js version 18 comme base
+FROM node:18-alpine
+
+# Définition de la variable d'environnement NODE_ENV à "production"
+ENV NODE_ENV production
+
+# Définition du répertoire de travail dans le conteneur
+WORKDIR /app
+
+# Copie de tout le contenu du répertoire local actuel dans le répertoire de travail du conteneur
+COPY --chown=user:user . /app
+
+# Copie du répertoire local "views" dans le répertoire de travail du conteneur
+COPY --chown=user:user ./views /app
+
+# Configuration du cache npm en utilisant un point de montage
+# pour améliorer la vitesse des installations ultérieures
+RUN --mount=type=cache,target=/usr/src/app/.npm \
+  npm set cache /usr/src/app/.npm && \
+  npm install ci --only=production
+
+# Exposition du port 8888 pour les connexions entrantes
+EXPOSE 8888
+# Commande à exécuter lorsque le conteneur est lancé
+CMD ["node", "server.js"]
+```
+
+Nous avons également introduit un Dockerfile 'User',qui nous permet de ne pas exécuter les conteneurs en tant qu'utilisateur 'root'. Cette approche renforce la sécurité de notre application en évitant l'exécution de processus sous un privilège élevé
 
 ```Dockerfile
 # Dockerfile user
@@ -151,25 +223,82 @@ WORKDIR /home/user
 CMD ["tail", "-f", "/dev/null"]
 ```
 
-## Docker compose
+Dans nos fichiers Dockerfile, nous pouvons observer l'application de plusieurs pratiques recommandées, notamment :
 
-```yaml
+- L'utilisation d'une image de base légère
+
+```Dockerfile
+FROM node:18-alpine
+FROM debian:bullseye-slim
+FROM python:3.11-alpine
+```
+
+- La définition de l'environnement de production
+
+```Dockerfile
+ENV NODE_ENV production
+ENV DOTNET_ENV=production
+ENV PYTHON_ENV=production
+```
+
+- La définition du répertoire de travail
+
+```Dockerfile
+WORKDIR /home/user
+WORKDIR /app
+```
+
+- La copie du contenu local
+
+```Dockerfile
+COPY --chown=user:user ./views /app
+COPY --from=build --chown=user:user /app/bin/release/net7.0 ./
+COPY requirements.txt /app/
+```
+
+- La configuration du cache npm
+
+```Dockerfile
+RUN --mount=type=cache,target=/usr/src/app/.npm \
+npm set cache /usr/src/app/.npm && \
+npm install ci --only=production
+```
+
+- L'exposition du port
+
+```Dockerfile
+EXPOSE 8080
+EXPOSE 8888
+```
+
+- La gestion des droits d'utilisateur avec `--chown=user:user`
+
+## Création du Docker Compose
+
+Nous avons élaboré un fichier Docker Compose regroupant les trois modules principaux (result, vote, worker), ainsi que les services Redis et PostgreSQL. Nous avons également inclus notre module additionnel, 'user'.
+
+```YAML
 # Docker compose
 
 services:
   # Service Redis utilisé pour le stockage en cache
   redis:
-    image: redis
+    image: redis:alpine
     ports:
       - "6379:6379"
     volumes:
       - redis-volume:/data
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
 
   # Service PostgreSQL utilisé pour la base de données
   postgres:
-    image: postgres
+    image: postgres:alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -178,6 +307,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-postgres
 
@@ -185,8 +319,11 @@ services:
   user:
     build:
       context: .
-    ports:
-      - "8888:8888"
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-user
 
@@ -198,21 +335,31 @@ services:
       - "8080:8080"
     depends_on:
       - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
 
-  # Service du worker
+  # Worker service qui dépend de Redis et PostgreSQL
   worker:
     build:
       context: ./worker
     depends_on:
       - postgres
       - redis
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
       - network-postgres
 
-  # Service de résultat
+  # Service de résultat qui dépend du worker
   result:
     build:
       context: ./result
@@ -220,6 +367,11 @@ services:
       - "8081:8888"
     depends_on:
       - worker
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:8888 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-postgres
 
@@ -238,130 +390,130 @@ networks:
     # Réseau personnalisé pour les services PostgreSQL, Worker, et Result
 ```
 
-## Docker Swarm
+En plus d'intégrer nos services, nous avons apporté quatre améliorations pour optimiser davantage notre composition.
 
-**Étape 1 : Création du vagrant**
+1. Réseaux :
 
-Tout d'abord, nous avons créé un `Vagrantfile` pour définir la configuration de nos machines virtuelles.
+- Les réseaux personnalisés nous permettront d'organiser nos conteneurs Docker, permettant ainsi aux conteneurs de communiquer entre eux tout en les isolant les uns des autres.
 
-```ruby
+2. Healthcheck :
+
+- Les tests de santé nous permettront de surveiller l'état des conteneurs et de les relancer si nécessaire. Ces tests seront réalisés à intervalles réguliers et avec un nombre d'essais défini.
+
+3. Volumes :
+
+- Les volumes nous permettront de conserver nos données en mémoire même si le conteneur est supprimé.
+
+4. Depends_on :
+
+- L'attribut depends_on indique à Docker quels conteneurs doivent être opérationnels avant que d'autres puissent démarrer. Dans le code source initial, les scripts Bash devaient être exécutés dans un ordre spécifique pour garantir le fonctionnement de l'application. Ici, nous définissons cet ordre en utilisant cet attribut.
+
+## Déploiement sur Docker Swarm
+
+Pour déployer l'application sur Docker Swarm, nous avons utilisé Vagrant pour gérer efficacement et rapidement les machines virtuelles.
+
+Dans un premier temps, nous avons créé un fichier Vagrant qui a permis de :
+
+- Configurer notre manager et nos deux workers
+- Initialiser notre cluster Docker Swarm
+- Récupérer le dossier du projet depuis GitHub
+- Construire nos différentes images
+
+```Ruby
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
 NODES = {
-  "manager1" => "192.168.99.100",
-  "worker1" => "192.168.99.101",
-  "worker2" => "192.168.99.102",
+ "manager1" => "192.168.99.100",
+ "worker1" => "192.168.99.101",
+ "worker2" => "192.168.99.102",
 }
 
 Vagrant.configure("2") do |config|
-  NODES.each do |(node_name, ip_address)|
-    config.vm.define node_name do |node|
-      node.vm.box = "bento/ubuntu-20.04"
-      node.vm.hostname = node_name
-      node.vm.network "private_network", ip: ip_address
+ NODES.each do |(node_name, ip_address)|
+   config.vm.define node_name do |node|
+     node.vm.box = "bento/ubuntu-20.04"
+     node.vm.hostname = node_name
+     node.vm.network "private_network", ip: ip_address
 
-      node.vm.provider "virtualbox" do |v|
-        v.name = node_name
-        v.memory = "1024"
-        v.cpus = "1"
-      end
+     node.vm.provider "virtualbox" do |v|
+       v.name = node_name
+       v.memory = "1024"
+       v.cpus = "1"
+     end
 
-      node.vm.provision "shell", inline: <<-SHELL
-        # Faire en sorte que les machines puissent communiquer entre elles via leur hostnames (exemple: ping worker1 depuis manager1)
-        #{NODES.map{ |n_name, ip| "echo '#{ip} #{n_name}' | sudo tee -a /etc/hosts\n"}.join}
+     node.vm.provision "shell", inline: <<-SHELL
+       # Faire en sorte que les machines puissent communiquer entre elles via leur hostnames (exemple: ping worker1 depuis manager1)
+       #{NODES.map{ |n_name, ip| "echo '#{ip} #{n_name}' | sudo tee -a /etc/hosts\n"}.join}
 
-        # Installer Docker
-        curl -fsSL get.docker.com -o get-docker.sh
-        CHANNEL=stable sh get-docker.sh
-        rm get-docker.sh
+       # Installer Docker
+       curl -fsSL get.docker.com -o get-docker.sh
+       CHANNEL=stable sh get-docker.sh
+       rm get-docker.sh
 
-        # Faire en sorte que le daemon Docker soit accessible depuis l'hôte
-        sudo mkdir -p /etc/systemd/system/docker.service.d
-        sudo bash -c 'echo -e "[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375" > /etc/systemd/system/docker.service.d/options.conf'
-        sudo systemctl daemon-reload
-        sudo systemctl restart docker.service
+       # Faire en sorte que le daemon Docker soit accessible depuis l'hôte
+       sudo mkdir -p /etc/systemd/system/docker.service.d
+       sudo bash -c 'echo -e "[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375" > /etc/systemd/system/docker.service.d/options.conf'
+       sudo systemctl daemon-reload
+       sudo systemctl restart docker.service
 
-      SHELL
-      if node_name == "manager1"
-        node.vm.provision "shell", inline: <<-SHELL
-          # Cloner le dépôt Git
-          git clone
-          git clone https://github.com/Kalipse/3DOKR.git /3DOKR
-          cd /3DOKR
+     SHELL
+     if node_name == "manager1"
+       node.vm.provision "shell", inline: <<-SHELL
+         # Cloner le dépôt Git
+         git clone
+         git clone https://github.com/Kalipse/3DOKR.git /3DOKR
+         cd /3DOKR
 
-          #build docker image
-          docker build -t vote-service ./vote
-          docker build -t worker-service ./worker
-          docker build -t result-service ./result
+         #build docker image
+         docker build -t vote-service ./vote
+         docker build -t worker-service ./worker
+         docker build -t result-service ./result
 
-          #initialiser le swarm
-          docker swarm init --advertise-addr 192.168.99.100
+         #initialiser le swarm
+         docker swarm init --advertise-addr 192.168.99.100
 
-          #il faut ensuite que les workers rejoignent le swarm
+         #il faut ensuite que les workers rejoignent le swarm
 
-          #on peut ensuite deployer les services
-          #docker stack deploy --compose-file docker-compose.yml 3DOKR
-
-
-        SHELL
-      end
+         #on peut ensuite deployer les services
+         #docker stack deploy --compose-file docker-compose.yml 3DOKR
 
 
+       SHELL
+     end
 
-    end
-  end
+
+
+   end
+ end
 end
 ```
 
-**Étape 2 : Initialisation de Vagrant**
-
-Pour initialiser les machines virtuelles avec Vagrant nous faisons :
-
-```bash
-vagrant up
-```
-
-**Étape 3 : Initialisation du Nœud Manager**
-
-Une fois les machines virtuelles créées, nous accédons à la machine du nœud manager :
-
-```bash
-vagrant ssh manager
-```
-
-et nous initialisons le swarm avec :
-
-```bash
-docker swarm init --advertise-addr 192.168.99.100
-```
-
-**Étape 4 : Initialisation des Nœuds Worker**
-Nous accedons ensuite aux machines des nœuds worker :
+Ensuite, nous accédons à chaque worker pour les rejoindre au cluster Docker Swarm.
 
 ```bash
 vagrant ssh worker1
 ```
 
 ```bash
+sudo docker swarm join --token INSERER LE TOKEN + ADDRESSE IP
+```
+
+```bash
 vagrant ssh worker2
 ```
 
-et nous les ajoutons au cluster :
-
 ```bash
-docker swarm join --token VOTRE_TOKEN VOTRE_ADRESSE_IP
+sudo docker swarm join --token INSERER LE TOKEN + ADDRESSE IP
 ```
 
-**Étape 5 : Création du compose**
-
-Nous créons ensuite le compose :
+Nous modifions ensuite le compose present dans le manager pour inclure l'attribut deploy
 
 ```bash
-nano compose.yaml
+vagrant ssh manager1
 ```
 
-```yaml
+```YAML
 #Docker compose Swarm
 
 version: "3.7"
@@ -369,17 +521,22 @@ version: "3.7"
 services:
   # Service Redis utilisé pour le stockage en cache
   redis:
-    image: redis:latest
+    image: redis:alpine
     ports:
       - "6379:6379"
     volumes:
       - redis-volume:/data
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
 
   # Service PostgreSQL utilisé pour la base de données
   postgres:
-    image: postgres:latest
+    image: postgres:alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -388,6 +545,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-postgres
 
@@ -402,6 +564,11 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-user
 
@@ -416,10 +583,15 @@ services:
       replicas: 3
       restart_policy:
         condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
 
-  # Service du worker
+  # Worker service qui dépend de Redis et PostgreSQL
   worker:
     image: worker-service:latest
     depends_on:
@@ -429,11 +601,16 @@ services:
       replicas: 3
       restart_policy:
         condition: on-failure
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-redis
       - network-postgres
 
-  # Service de résultat
+  # Service de résultat qui dépend du worker
   result:
     image: result-service:latest
     ports:
@@ -444,6 +621,11 @@ services:
       replicas: 3
       restart_policy:
         condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:8888 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - network-postgres
 
@@ -460,6 +642,12 @@ networks:
     # Réseau personnalisé pour les services Redis et Vote
   network-postgres:
     # Réseau personnalisé pour les services PostgreSQL, Worker et Result
+```
+
+Il ne nous reste plus qu'à accéder au manager et déployer notre application sur le Docker Swarm.
+
+```bash
+docker stack deploy -c SwarmCompose.yaml 3DOKR
 ```
 
 **Remarque :**
@@ -479,64 +667,6 @@ ou
 ```cs
 var redisConn = OpenRedisConnection("3DOKR_redis");
 ```
-
-**Étape 6 : Construction des Images**
-
-Nous construisons nos images pour pouvoir les utiliser dans le deploy :
-
-```bash
-docker build -t vote-service ./vote
-docker build -t worker-service ./worker
-docker build -t result-service ./result
-```
-
-**Étape 7 : Déploiement des Services**
-
-Nous déployons ensuite les services :
-
-```bash
-docker stack deploy -c compose.yml 3DOKR
-```
-
-## Installation et Exécution
-
-### Clonage du Projet et Exécution avec Docker Compose
-
-Pour exécuter ce projet sur votre propre système, suivez les étapes ci-dessous :
-
-**Étape 1 : Clonage du Projet**
-
-Clonez ce dépôt GitHub dans un dossier de votre choix en utilisant la commande `git clone` :
-
-```bash
-git clone https://github.com/Kalipse/votre-projet.git
-```
-
-**Étape 2 : Accédez au Répertoire du Projet**
-
-Accédez au répertoire du projet nouvellement cloné :
-
-```bash
-cd votre-projet
-```
-
-**Étape 3 : Lancement de l'Application avec Docker Compose**
-
-Pour lancer l'application à l'aide de Docker Compose, exécutez la commande suivante :
-
-```bash
-docker-compose up
-```
-
-Docker Compose démarrera les conteneurs pour les modules "vote," "worker," et "result," ainsi que les bases de données PostgreSQL et Redis, selon la configuration définie dans le fichier "docker-compose.yml."
-
-Vous pouvez ensuite accéder à l'application en utilisant un navigateur web à l'adresse `http://localhost`.
-
-**Étape 4 : Arrêt de l'Application**
-
-Pour arrêter l'application et les conteneurs Docker, utilisez la combinaison de touches Ctrl+C dans le terminal où Docker Compose est en cours d'exécution.
-
-Si vous souhaitez personnaliser les ports ou les paramètres, assurez-vous de consulter le fichier "docker-compose.yml" pour effectuer des modifications.
 
 ## Contributeurs
 
