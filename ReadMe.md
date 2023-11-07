@@ -14,7 +14,6 @@ Conteneurisation d'une application de vote distribuée avec Docker
 ## Introduction
 
 Ce mini-projet consiste à moderniser le déploiement d'une application distribuée de vote, en utilisant des conteneurs Docker. L'application permet à un public de voter entre deux options et d'afficher les résultats en temps réel. Actuellement, le projet est géré via des scripts bash, et l'objectif est de transformer ce processus en un environnement de conteneurs Docker pour une meilleure gestion, évolutivité et facilité de déploiement.
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 
 ## Installation
 
@@ -94,6 +93,8 @@ EXPOSE 8080
 CMD ["python", "app.py"]
 ```
 
+<br><br><br>
+
 **Module worker (bash) :**
 
 ```bash
@@ -152,6 +153,8 @@ COPY --from=build --chown=user:user /app/bin/release/net7.0 ./
 CMD ["dotnet", "Worker.dll"]
 ```
 
+<br><br><br>
+
 **Module result (bash) :**
 
 ```bash
@@ -202,6 +205,8 @@ EXPOSE 8888
 # Commande à exécuter lorsque le conteneur est lancé
 CMD ["node", "server.js"]
 ```
+
+<br><br><br>
 
 Nous avons également introduit un Dockerfile 'User',qui nous permet de ne pas exécuter les conteneurs en tant qu'utilisateur 'root'. Cette approche renforce la sécurité de notre application en évitant l'exécution de processus sous un privilège élevé
 
